@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -29,10 +30,12 @@ import java.net.Socket;
 
 public class home_view extends AppCompatActivity {
     private ImageView imageViewScreens1;
+    private  ImageView imageViewScreens2;
     private boolean isConnected1 = false;
-
+    private boolean isConnected2=false;
 
     private Socket socket;
+    private Socket socket2;
     private OutputStream outputStream;
 
     private EditText editText1;
@@ -41,6 +44,7 @@ public class home_view extends AppCompatActivity {
     private TextView txtUser1;
     private ImageView imgLogo1;
     private FrameLayout frmStateConnect1;
+    private  FrameLayout frmStateConnect2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,15 +58,16 @@ public class home_view extends AppCompatActivity {
         });
 
         imageViewScreens1=findViewById(R.id.imageViewScreens1);
-
+        imageViewScreens2 = findViewById(R.id.imageViewScreens2);
 
         imgLogo1 = findViewById(R.id.imgLogo1);
         txtUser1 = findViewById(R.id.txtUser1);
 
         imageViewScreens1.setImageResource(R.drawable.bgforimgview);
-
+        imageViewScreens2.setImageResource(R.drawable.bgforimgview);
 
         frmStateConnect1 = findViewById(R.id.frmStateConnect1);
+        frmStateConnect2 = findViewById(R.id.frmStateConnect2);
 
 
         if(!isConnected1){
@@ -72,15 +77,21 @@ public class home_view extends AppCompatActivity {
             frmStateConnect1.setBackgroundResource(R.drawable.rounnded_full_frame_dv_true);
         }
 
+        if(!isConnected2){
+            frmStateConnect2.setBackgroundResource(R.drawable.rounnded_full_frame_dv);
+        }
+        else{
+            frmStateConnect1.setBackgroundResource(R.drawable.rounnded_full_frame_dv_true);
+        }
 
         imageViewScreens1.setOnClickListener(v -> {
             if(isConnected1 == false){
                 showInputDialog();
             }else{
-
+                Intent intent = new Intent(home_view.this,show_detail_viewscr.class);
+                startActivity(intent);
             }
         });
-
     }
 
     private void showInputDialog() {
@@ -189,6 +200,20 @@ public class home_view extends AppCompatActivity {
         } catch (Exception e) {
             Log.e("MainActivity", "Lỗi khi đóng socket: " + e.getMessage(), e);
         }
+
+        try{
+            if (socket2 != null) {
+                isConnected2 = false;
+                socket2.close();
+                imageViewScreens2.setImageBitmap(null); // Xóa hình ảnh khi ngắt kết nối
+                imageViewScreens2.setBackgroundColor(getResources().getColor(android.R.color.black)); // Đặt lại nền đen
+                buttonConnect1.setText("Kết nối");
+//                updateButtonStates(false);
+            }
+
+        }catch (Exception e){
+            Log.e("MainActivity", "Lỗi khi đóng socket: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -199,9 +224,13 @@ public class home_view extends AppCompatActivity {
                 isConnected1 = false;
                 socket.close();
             }
+            if(socket2 != null){
+                isConnected2 = false;
+                socket2.close();
+            }
         } catch (Exception e) {
             Log.e("MainActivity", "Lỗi khi đóng socket: " + e.getMessage(), e);
         }
     }
-
+    /////
 }

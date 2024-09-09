@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     tools:context=".home_view">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -205,7 +205,25 @@
                     app:layout_constraintTop_toBottomOf="@+id/imageViewScreens1">
 
                 </FrameLayout>
+                <ImageView
+                    android:id="@+id/imageViewScreens2"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginTop="16dp"
+                    android:scaleType="fitCenter"
+                    app:layout_constraintTop_toBottomOf="@+id/textView11"
+                    tools:layout_editor_absoluteX="-4dp"/>
 
+                <TextView
+                    android:id="@+id/textView16"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Không còn dữ liệu"
+                    android:textColor="#8E8E8E"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/imageViewScreens2" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
