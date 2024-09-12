@@ -1,0 +1,7 @@
+<!-- res/drawable/down_arrow.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#D3D3D3" /> <!-- Màu nền -->
+    <size android:width="50dp" android:height="50dp" /> <!-- Kích thước của mũi tên -->
+    <padding android:left="10dp" android:right="10dp" android:top="10dp" android:bottom="10dp"/>
+    <path android:fillColor="#000000" android:pathData="M 10,10 L 40,10 L 25,30 Z" /> <!-- Hình tam giác cho mũi tên -->
+</shape>

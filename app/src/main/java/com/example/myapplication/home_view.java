@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,6 +25,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.github.chrisbanes.photoview.PhotoView;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -90,6 +92,29 @@ public class home_view extends AppCompatActivity {
             }else{
                 Intent intent = new Intent(home_view.this,show_detail_viewscr.class);
                 startActivity(intent);
+                Handler handler = new Handler();
+                Runnable runable = new Runnable() {
+                    @Override
+                    public void run() {
+                        imageViewScreens1.buildDrawingCache();
+                        Bitmap bitmap = imageViewScreens1.getDrawingCache();
+
+                        if (bitmap != null) {
+                            // Chuyển đổi Bitmap thành byte array
+                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                            byte[] byteArray = stream.toByteArray();
+
+                            // Gửi Broadcast
+                            Intent broadcastIntent = new Intent("UPDATE_SCREEN_IMAGE");
+                            broadcastIntent.putExtra("bitmap", byteArray);
+                            sendBroadcast(broadcastIntent);
+                        }
+                        handler.postDelayed(this,200);
+                    }
+                };
+                handler.post(runable);
+
             }
         });
     }
@@ -120,6 +145,7 @@ public class home_view extends AppCompatActivity {
             if(isConnected1 == false){
                 Log.d("test",input2);
                 new ConnectTask().execute(input2);
+
                 txtUser1.setText(input2);
                 imgLogo1.setImageResource(R.drawable.lgn);
             }
@@ -137,6 +163,7 @@ public class home_view extends AppCompatActivity {
         protected Boolean doInBackground(String... params) {
             try {
                 socket = new Socket(params[0], 5000);
+                SocketManager.setSocket(socket);
                 isConnected1 = true;
                 frmStateConnect1.setBackgroundResource(R.drawable.rounnded_full_frame_dv_true);
                 outputStream = socket.getOutputStream();

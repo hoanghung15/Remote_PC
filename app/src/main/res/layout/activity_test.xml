@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <!-- Vòng tròn điều khiển có thể di chuyển được -->
+    <ImageView
+        android:id="@+id/joystick"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@drawable/circle_background"
+        android:layout_gravity="center" />
+
+    <!-- Các nút điều khiển cố định (lên, xuống, trái, phải) -->
+    <Button
+        android:id="@+id/upButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:text="Up"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="50dp" />
+
+    <Button
+        android:id="@+id/downButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:text="Down"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="50dp" />
+
+    <Button
+        android:id="@+id/leftButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:text="Left"
+        android:layout_gravity="start|center_vertical"
+        android:layout_marginStart="50dp" />
+
+    <Button
+        android:id="@+id/rightButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:text="Right"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="50dp" />
+
+</FrameLayout>
