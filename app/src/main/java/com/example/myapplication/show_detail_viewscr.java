@@ -11,6 +11,7 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -27,9 +28,18 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.devadvance.circularseekbar.CircularSeekBar;
 import com.github.chrisbanes.photoview.PhotoView;
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 public class show_detail_viewscr extends AppCompatActivity {
     private PhotoView photoView;
@@ -48,11 +58,14 @@ public class show_detail_viewscr extends AppCompatActivity {
 
     private Handler handler = new Handler(Looper.getMainLooper());
 
-    private boolean firstView = true;
+    private boolean firstView = false;
 
     private ImageView upButton, downButton, leftButton, rightButton;
     private Button btnLeftClickMouse,btnRightClickMouse;
     private ImageView btnReturnDetailView;
+//speaker
+    private TextView txtValueofSpeaker;
+    private CircularSeekBar circularSeekBar1;
 
 
     @Override
@@ -81,11 +94,131 @@ public class show_detail_viewscr extends AppCompatActivity {
         IntentFilter filter = new IntentFilter("UPDATE_SCREEN_IMAGE");
         registerReceiver(screenUpdateReceiver, filter);
 
+        //getVl
+        txtValueofSpeaker = speakerControlView.findViewById(R.id.txtValueofSpeaker);
+        circularSeekBar1  = speakerControlView.findViewById(R.id.circularSeekBar1);
         btnReturnDetailView.setOnClickListener(v -> {
             finish();
         });
+
+        btnMouse.setOnClickListener(v->{
+            showControlView(mouseControlView);
+            showControl.removeView(mouseControlView);
+            btnMouse.setImageResource(R.drawable.bntmdrk);
+            showControl.removeView(speakerControlView);
+            joystick = mouseControlView.findViewById(R.id.joystick);
+            upButton = mouseControlView.findViewById(R.id.btnUpmouse);
+            downButton = mouseControlView.findViewById(R.id.btnDownMouse);
+            leftButton = mouseControlView.findViewById(R.id.btnLeftMouse);
+            rightButton = mouseControlView.findViewById(R.id.btnRightMouse);
+            btnLeftClickMouse = mouseControlView.findViewById(R.id.btnLeftClickMouse);
+            btnRightClickMouse = mouseControlView.findViewById(R.id.btnRightClickMouse);
+
+            // Lưu vị trí ban đầu của joystick
+            joystick.post(() -> {
+                initialX = joystick.getX();
+                initialY = joystick.getY();
+            });
+
+            joystick.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View view, MotionEvent motionEvent) {
+                    // Lấy tọa độ của frmMoveMouse để giới hạn joystick
+                    FrameLayout frmMoveMouse = findViewById(R.id.frmMoveMouse);
+                    int parentWidth = frmMoveMouse.getWidth();
+                    int parentHeight = frmMoveMouse.getHeight();
+                    int joystickWidth = joystick.getWidth();
+                    int joystickHeight = joystick.getHeight();
+
+                    switch (motionEvent.getAction()) {
+                        case MotionEvent.ACTION_DOWN:
+                            dX = view.getX() - motionEvent.getRawX();
+                            dY = view.getY() - motionEvent.getRawY();
+                            break;
+
+                        case MotionEvent.ACTION_MOVE:
+                            float newX = motionEvent.getRawX() + dX;
+                            float newY = motionEvent.getRawY() + dY;
+
+                            // Giới hạn X không vượt quá biên trái và phải
+                            if (newX < 0) {
+                                newX = 0;
+                            } else if (newX + joystickWidth > parentWidth) {
+                                newX = parentWidth - joystickWidth;
+                            }
+
+                            // Giới hạn Y không vượt quá biên trên và dưới
+                            if (newY < 0) {
+                                newY = 0;
+                            } else if (newY + joystickHeight > parentHeight) {
+                                newY = parentHeight - joystickHeight;
+                            }
+
+                            view.animate()
+                                    .x(newX)
+                                    .y(newY)
+                                    .setDuration(0)
+                                    .start();
+
+                            checkCollisionWithButtons(view);
+                            break;
+
+                        case MotionEvent.ACTION_UP:
+                            view.animate()
+                                    .x(initialX)
+                                    .y(initialY)
+                                    .setDuration(500)
+                                    .start();
+                            break;
+
+                        default:
+                            return false;
+                    }
+                    return true;
+                }
+            });
+
+            upButton.setOnClickListener(view->{
+                upButton.setImageResource(R.drawable.clickedmouse);
+                new Thread(() -> sendMouseCommand("MOVE_UP")).start();
+                handler.postDelayed(() -> upButton.setImageResource(R.drawable.btnumouse), 200);
+            });
+            downButton.setOnClickListener(view->{
+                downButton.setImageResource(R.drawable.clickedownmouse);
+                new Thread(() -> sendMouseCommand("MOVE_DOWN")).start();
+                handler.postDelayed(() -> downButton.setImageResource(R.drawable.btndmouse), 200);
+            });
+            leftButton.setOnClickListener(view->{
+                leftButton.setImageResource(R.drawable.clickedleftmouse);
+                new Thread(() -> sendMouseCommand("MOVE_LEFT")).start();
+                handler.postDelayed(() -> leftButton.setImageResource(R.drawable.btnlmouse), 200);
+            });
+            rightButton.setOnClickListener(view->{
+                rightButton.setImageResource(R.drawable.clickedrightmouse);
+                new Thread(() -> sendMouseCommand("MOVE_RIGHT")).start();
+                handler.postDelayed(() -> rightButton.setImageResource(R.drawable.btnrmouse), 200);
+            });
+
+            btnLeftClickMouse.setOnClickListener(view -> {
+                new Thread(() ->sendMouseCommand("LEFT_CLICK")).start();
+            });
+            btnRightClickMouse.setOnClickListener(view -> {
+                new Thread(() -> sendMouseCommand("RIGHT_CLICK")).start();
+            });
+
+            showControlView(mouseControlView);
+            btnMouse.setImageResource(R.drawable.bntmdrk);
+
+
+        });
         txtQuality.setOnClickListener( v ->{
             Toast.makeText(this," Highest quality",Toast.LENGTH_SHORT).show();
+        });
+        btnSpeaker.setOnClickListener(v -> {
+            firstView = false;
+            showControlView(speakerControlView);
+            sendMouseCommand1("GETVALUESPEAKER");
+            showControl.removeView(mouseControlView);
         });
 
         if (firstView) {
@@ -278,4 +411,60 @@ public class show_detail_viewscr extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+    public void sendCommand(String command) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Socket socket = SocketManager.getSocket();
+                    PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+                    out.println(command);  // Gửi lệnh tới server
+                    Log.e("Client", "Đã gửi lệnh: " + command);
+                } catch (Exception e) {
+                    Log.e("Client", "Lỗi khi gửi lệnh", e);
+                }
+            }
+        }).start();
+    }
+
+    private void sendMouseCommand1(String command) {
+        new Thread(() -> {
+            try {
+                Socket socket = SocketManager.getSocket();
+                OutputStream outputStream = socket.getOutputStream();
+                if (outputStream != null) {
+                    outputStream.write(command.getBytes());
+                    outputStream.flush();
+
+                    // Nhận dữ liệu từ server
+                    InputStream inputStream = socket.getInputStream();
+                    byte[] buffer = new byte[1024];
+                    int bytesRead = inputStream.read(buffer);
+
+                    if (bytesRead != -1) {
+                        String response = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8).trim();
+                        Log.e("Client", "Nhận được tin nhắn từ server: " + response);
+                        // Xử lý dữ liệu nhận được từ server
+                        handler.post(() -> txtValueofSpeaker.setText(response.toString().trim()));
+                        int test = Integer.parseInt(response.toString().trim());
+                        circularSeekBar1.setProgress(test);
+                        Log.d("Client",String.valueOf(test));
+
+                        if ("a".equals(response)) {
+                            // Làm gì đó với thông báo 'a'
+                            handler.post(() -> Toast.makeText(show_detail_viewscr.this, "Nhận tin nhắn 'a' từ server", Toast.LENGTH_SHORT).show());
+                        }
+                    } else {
+                        Log.e("Client", "Dữ liệu không được đọc hoặc kết nối bị ngắt.");
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+
+
 }

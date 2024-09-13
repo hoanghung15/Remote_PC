@@ -123,7 +123,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="40dp"
                     android:layout_marginTop="20dp"
-                    android:text="Thiết bị 1"
+                    android:text="Device 1"
                     android:textSize="16dp"
                     android:textStyle="normal"
                     app:layout_constraintStart_toStartOf="parent"
@@ -192,7 +192,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="40dp"
                     android:layout_marginTop="20dp"
-                    android:text="Thiết bị 2"
+                    android:text="Device 2"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/imageViewScreens1" />
 
@@ -220,7 +220,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="Không còn dữ liệu"
+                    android:text="No data more"
                     android:textColor="#8E8E8E"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
