@@ -1,0 +1,41 @@
+from ctypes import cast, POINTER
+from comtypes import CLSCTX_ALL
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+import socket
+
+# Server IP and port
+SERVER_IP = '192.168.1.16'
+SERVER_PORT = 12345
+
+# Function to get current volume level
+def get_current_volume():
+    devices = AudioUtilities.GetSpeakers()
+    interface = devices.Activate(
+        IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+    volume = cast(interface, POINTER(IAudioEndpointVolume))
+    current_volume = volume.GetMasterVolumeLevelScalar() * 100  # Get volume as percentage
+    return str(int(current_volume))
+
+# Create a socket
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# Bind the socket to the IP and port
+server_socket.bind((SERVER_IP, SERVER_PORT))
+
+# Listen for incoming connections
+server_socket.listen(1)
+print(f"Server listening on {SERVER_IP}:{SERVER_PORT}")
+
+while True:
+    # Accept a connection
+    client_socket, addr = server_socket.accept()
+    print(f"Connection from {addr}")
+
+    # Get the current volume
+    volume_level = get_current_volume()
+    
+    # Send the volume level to the client
+    client_socket.send(volume_level.encode())
+
+    # Close the connection
+    client_socket.close()

@@ -1,0 +1,151 @@
+import pythoncom  # Import thư viện pythoncom
+from ctypes import cast, POINTER
+from comtypes import CLSCTX_ALL
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+import socket
+import pyautogui
+import io
+import time
+import threading
+import mss
+from PIL import Image
+
+class Server:
+    def __init__(self):
+        self.command = None
+        self.command_lock = threading.Lock()
+        self.clients = []  # Store the list of clients
+
+    def get_current_volume(self):
+        try:
+            # Khởi tạo COM
+            pythoncom.CoInitialize()
+
+            # Sử dụng pycaw để lấy âm lượng loa
+            devices = AudioUtilities.GetSpeakers()
+            interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            volume = cast(interface, POINTER(IAudioEndpointVolume))
+            current_volume = volume.GetMasterVolumeLevelScalar()
+            current_volume_percent = int(current_volume * 100)
+
+            # Hủy khởi tạo COM
+            pythoncom.CoUninitialize()
+
+            return ( str(current_volume_percent))
+        except Exception as e:
+            print(f"Lỗi khi lấy âm lượng loa: {e}")
+            return "Lỗi"
+
+    def handle_client(self, client_socket):
+        try:
+            while True:
+                command = client_socket.recv(1024).decode('utf-8').strip()
+                print(f"Server received command: {command}")
+
+                if command:
+                    with self.command_lock:
+                        self.command = command
+
+                if command == "GETVALUESPEAKER":
+                    # Get the current volume value
+                    valueSpeaker ="75"
+                    try:
+                        client_socket.sendall(valueSpeaker.encode('utf-8').strip())
+                    except Exception as e:
+                        print(f"Error sending data to client: {e}")
+
+                else:
+                    print("Invalid command")
+
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            with self.command_lock:
+                if client_socket in self.clients:
+                    self.clients.remove(client_socket)
+            client_socket.close()
+
+    def capture_screenshots(self):
+        with mss.mss() as sct:
+            while True:
+                try:
+                    # Capture screenshot using mss
+                    screenshot = sct.grab(sct.monitors[1])
+
+                    # Convert image to PIL format for editing
+                    img = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
+
+                    # Get mouse cursor position and draw cursor on the image
+                    mouse_x, mouse_y = pyautogui.position()
+                    cursor_size = 10  # Cursor size
+                    img.paste((255, 0, 0), [mouse_x - cursor_size // 2, mouse_y - cursor_size // 2, mouse_x + cursor_size // 2, mouse_y + cursor_size // 2])
+
+                    # Save image to memory buffer
+                    image_bytes = io.BytesIO()
+                    img.save(image_bytes, format='JPEG', quality=50)
+                    image_bytes = image_bytes.getvalue()
+
+                    # Send image size and data to all clients
+                    with self.command_lock:
+                        for client in self.clients:
+                            try:
+                                image_size = len(image_bytes)
+                                client.sendall(image_size.to_bytes(4, 'big'))  # Send size in 4 bytes
+                                client.sendall(image_bytes)  # Send image data
+                            except Exception as e:
+                                print(f"Error sending data to client: {e}")
+                                self.clients.remove(client)
+
+                    # Handle mouse commands if any
+                    with self.command_lock:
+                        if self.command == "MOVE_DOWN":
+                            pyautogui.moveRel(0, 100)  # Move mouse down 100 points
+                            self.command = None  # Clear the command after execution
+                        elif self.command == "MOVE_UP":
+                            pyautogui.moveRel(0, -100)
+                            self.command = None
+                        elif self.command == "MOVE_RIGHT":
+                            pyautogui.moveRel(100, 0)
+                            self.command = None
+                        elif self.command == "MOVE_LEFT":
+                            pyautogui.moveRel(-100, 0)
+                            self.command = None
+                        elif self.command == "RIGHT_CLICK":
+                            pyautogui.click(button='right')
+                            self.command = None
+                        elif self.command == "LEFT_CLICK":
+                            pyautogui.click()
+                            self.command = None
+                        elif self.command == "DISCONNECT":
+                            break
+
+                    time.sleep(0.02)  # Adjust based on network speed
+                except Exception as e:
+                    print(f"Error: {e}")
+
+    def start_server(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind(('0.0.0.0', 5000))
+        server_socket.listen(5)  # Increase number of simultaneous connections
+        print("Server is listening on port 5000...")
+
+        while True:
+            client_socket, addr = server_socket.accept()
+            print(f"Connection from {addr}")
+
+            # Add client to the list
+            with self.command_lock:
+                self.clients.append(client_socket)
+
+            # Use threading to handle the client connection
+            client_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
+            client_thread.start()
+
+            # Start continuous screenshot capture
+            if len(self.clients) == 1:
+                screenshot_thread = threading.Thread(target=self.capture_screenshots)
+                screenshot_thread.start()
+
+if __name__ == "__main__":
+    server = Server()
+    server.start_server()

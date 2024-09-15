@@ -181,11 +181,11 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </FrameLayout>
+
         <FrameLayout
             android:id="@+id/showControl"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            />
+            android:layout_height="match_parent"/>
 
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
