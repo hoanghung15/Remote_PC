@@ -127,6 +127,7 @@
                             android:background="@android:color/transparent"
                             android:hint="email"
                             android:padding="32px"
+                            android:textColor="#FFFFFF"
                             android:textColorHint="#BCBCBE" />
                     </soup.neumorphism.NeumorphCardView>
                     <!--password-->
@@ -149,6 +150,7 @@
                             android:background="@android:color/transparent"
                             android:hint="password"
                             android:padding="32px"
+                            android:textColor="#FFFFFF"
                             android:textColorHint="#BCBCBE" />
 
                     </soup.neumorphism.NeumorphCardView>

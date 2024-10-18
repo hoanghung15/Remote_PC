@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -17,9 +18,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,6 +38,8 @@ import com.github.chrisbanes.photoview.PhotoView;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -60,14 +65,17 @@ public class show_detail_viewscr extends AppCompatActivity {
 
     private Handler handler = new Handler(Looper.getMainLooper());
 
-    private boolean firstView = false;
-
+    private boolean firstView = true;
+    //PrintScreen
+    private FrameLayout frmPrintScreen;
+    //
     private ImageView upButton, downButton, leftButton, rightButton;
     private Button btnLeftClickMouse,btnRightClickMouse;
     private ImageView btnReturnDetailView;
     //speaker
     private TextView txtValueofSpeaker;
     private CircularSeekBar circularSeekBar1;
+    private Switch swtSpeaker;
     //rotate
     private ImageView btnRotate;
     private boolean isLandscape = false;
@@ -92,6 +100,7 @@ public class show_detail_viewscr extends AppCompatActivity {
         txtQuality = findViewById(R.id.txtQuality);
         btnSpeaker = findViewById(R.id.btnSpeaker);
         btnRotate = findViewById(R.id.btnRotate);
+        frmPrintScreen = findViewById(R.id.frmPrintScreen);
 
         mouseControlView = getLayoutInflater().inflate(R.layout.control_mouse, null);
         speakerControlView = getLayoutInflater().inflate(R.layout.control_speaker,null);
@@ -103,7 +112,7 @@ public class show_detail_viewscr extends AppCompatActivity {
         //getVl
         txtValueofSpeaker = speakerControlView.findViewById(R.id.txtValueofSpeaker);
         circularSeekBar1  = speakerControlView.findViewById(R.id.circularSeekBar1);
-
+        swtSpeaker = speakerControlView.findViewById(R.id.swtSpeaker);
         btnReturnDetailView.setOnClickListener(v -> {
             finish();
         });
@@ -251,15 +260,18 @@ public class show_detail_viewscr extends AppCompatActivity {
             Toast.makeText(this," Highest quality",Toast.LENGTH_SHORT).show();
         });
         btnSpeaker.setOnClickListener(new View.OnClickListener() {
+
             @Override
             public void onClick(View v) {
                 showControlView(speakerControlView);
+                btnMouse.setImageResource(R.drawable.btnmgray);
+                btnSpeaker.setImageResource(R.drawable.btnsdrk);
                 // Start a new thread to handle network communication
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            Socket socket = new Socket("192.168.1.16", 12345);
+                            Socket socket = new Socket("192.168.1.26", 12345);
                             // Read the message from the server
                             BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                             final String message = input.readLine();
@@ -282,6 +294,10 @@ public class show_detail_viewscr extends AppCompatActivity {
                     }
                 }).start();
             }
+
+        });
+        frmPrintScreen.setOnClickListener(v ->{
+            saveScreenshot();
         });
         circularSeekBar1.setOnSeekBarChangeListener(new CircularSeekBar.OnCircularSeekBarChangeListener() {
             @Override
@@ -300,6 +316,51 @@ public class show_detail_viewscr extends AppCompatActivity {
 
             }
         });
+        swtSpeaker.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                // Tạo luồng mới để xử lý việc gửi yêu cầu tới server Python
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            // Kết nối tới server Python
+                            Socket socket = new Socket("192.168.1.26", 11111);
+                            OutputStream outputStream = socket.getOutputStream();
+                            PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8), true);
+
+                            // Kiểm tra trạng thái của Switch để gửi lệnh ON hoặc OFF
+                            if (isChecked) {
+                                // Switch bật, gửi lệnh "ON"
+                                writer.println("ON");
+                            } else {
+                                // Switch tắt, gửi lệnh "OFF"
+                                writer.println("OFF");
+                            }
+
+                            // Đọc phản hồi từ server
+                            BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                            final String response = input.readLine();
+
+                            // Đóng kết nối socket
+                            socket.close();
+
+                            // Cập nhật giao diện (UI) theo phản hồi nhận được
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(show_detail_viewscr.this, response, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).start();
+            }
+        });
+
         if (firstView) {
             // Khởi tạo joystick và các nút điều khiển chỉ khi firstView là true
             joystick = mouseControlView.findViewById(R.id.joystick);
@@ -487,6 +548,41 @@ public class show_detail_viewscr extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+    public void saveScreenshot() {
+        // Tạo một Bitmap từ PhotoView
+        photoView.setDrawingCacheEnabled(true);
+        Bitmap bitmap = Bitmap.createBitmap(photoView.getDrawingCache());
+        photoView.setDrawingCacheEnabled(false);
+
+        // Sử dụng thư mục an toàn hơn trong thư mục Pictures của ứng dụng
+        File directory = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "Screenshots");
+        if (!directory.exists()) {
+            directory.mkdirs(); // Tạo thư mục nếu chưa tồn tại
+        }
+
+        // Tạo file để lưu ảnh chụp màn hình
+        File file = new File(directory, "screenshot_" + System.currentTimeMillis() + ".png");
+        try {
+            FileOutputStream outputStream = new FileOutputStream(file);
+            boolean saved = bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream); // Nén và lưu ảnh
+            outputStream.flush();
+            outputStream.close();
+
+            // Kiểm tra nếu việc lưu thành công
+            if (saved) {
+                Log.e("Test","\"Screenshot saved successfully to:"+file.getAbsolutePath());
+                Toast.makeText(this, "Screenshot saved successfully to: " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Failed to save screenshot!", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("Test",e.toString());
+            Toast.makeText(this, "Error occurred while saving screenshot: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
 
 

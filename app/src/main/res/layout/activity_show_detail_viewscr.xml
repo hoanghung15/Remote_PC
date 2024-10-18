@@ -145,6 +145,7 @@
                 android:layout_height="match_parent">
 
                 <FrameLayout
+                    android:id="@+id/frmPrintScreen"
                     android:layout_width="160dp"
                     android:layout_height="50dp"
                     android:background="@drawable/rounded_camera"
