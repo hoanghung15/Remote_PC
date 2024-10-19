@@ -264,8 +264,8 @@ public class show_detail_viewscr extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 showControlView(speakerControlView);
-                btnMouse.setImageResource(R.drawable.btnmgray);
                 btnSpeaker.setImageResource(R.drawable.btnsdrk);
+                btnMouse.setImageResource(R.drawable.btnmgray);
                 // Start a new thread to handle network communication
                 new Thread(new Runnable() {
                     @Override
